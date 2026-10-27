@@ -114,6 +114,7 @@
             <TextBlock Text="{Binding Status}" TextWrapping="Wrap" Foreground="#884A0B" AutomationProperties.Name="保存状态"/>
         </ScrollViewer>
         <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="管理日程…" Click="OnSchedule"/>
             <Button Content="查看当前预览" Click="OnPreview"/>
             <Button Content="保存并应用" Click="OnSave" IsEnabled="{Binding CanSave}" IsDefault="True"/>
             <Button Content="关闭" Click="OnClose" IsCancel="True"/>

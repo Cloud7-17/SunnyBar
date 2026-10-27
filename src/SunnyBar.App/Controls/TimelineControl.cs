@@ -80,6 +80,23 @@ public sealed class TimelineControl : FrameworkElement
         else
             drawingContext.DrawRoundedRectangle(background, null, new Rect(left, barTop, width, barHeight), 9, 9);
 
+        if (state.Schedule is { Segments.Count: > 0 } schedule)
+        {
+            var lanes = schedule.Segments.Max(segment => segment.Lane) + 1;
+            var laneHeight = barHeight / lanes;
+            drawingContext.PushClip(new RectangleGeometry(new Rect(left, barTop, width, barHeight)));
+            foreach (var segment in schedule.Segments)
+            {
+                var color = (Color)ColorConverter.ConvertFromString(segment.Event.Color);
+                var fill = new SolidColorBrush(Color.FromArgb(segment.IsCurrent ? (byte)210 : (byte)125, color.R, color.G, color.B));
+                var outline = segment.IsCurrent ? Brushes.White : new SolidColorBrush(color);
+                var rect = new Rect(left + width * segment.StartProgress, barTop + laneHeight * segment.Lane,
+                    Math.Max(0.5, width * (segment.EndProgress - segment.StartProgress)), laneHeight);
+                drawingContext.DrawRectangle(fill, new Pen(outline, segment.IsCurrent ? 2 : 1), rect);
+            }
+            drawingContext.Pop();
+        }
+
         var labelBounds = new List<Rect>();
         if (state.Solar is { } solar)
             foreach (var marker in solar.Markers)

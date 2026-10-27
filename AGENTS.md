@@ -24,7 +24,7 @@ Read `docs/PRODUCT_PLAN.md` before coding. Follow the milestones in order. Compl
 - Only primary monitor, bottom non-auto-hidden taskbar guaranteed for MVP.
 - Sunrise/sunset computation is offline. No automatic geolocation or network requirement.
 - Config at `%LocalAppData%\SunnyBar\settings.json`. Default to the Beijing preset as explicitly requested by the user on 2026-10-27; show it clearly, never imply automatic geolocation, and preserve saved locations (including an explicit null location).
-- **Do not implement calendar CRUD / V2 schedule features until V0.1–V1.0 work has been validated.**
+- The user explicitly authorized schedule work on 2026-10-27 after the public 0.2.0 preview and Windows CI passed. Implement single local events first; keep unresolved M5 desktop checks documented, defer recurrence, and retain default mouse pass-through and concise hover information.
 
 ## Working method
 

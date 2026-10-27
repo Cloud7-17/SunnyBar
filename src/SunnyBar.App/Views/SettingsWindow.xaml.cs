@@ -9,6 +9,7 @@ public partial class SettingsWindow : Window
 {
     private readonly SettingsEditorViewModel editor;
     public event EventHandler? PreviewRequested;
+    public event EventHandler? ScheduleRequested;
     public SettingsWindow(SettingsEditorViewModel editor)
     {
         this.editor = editor;
@@ -46,5 +47,6 @@ public partial class SettingsWindow : Window
     }
     private void OnRemoveMarker(object sender, RoutedEventArgs e) => editor.RemoveMarker();
     private void OnPreview(object sender, RoutedEventArgs e) => PreviewRequested?.Invoke(this, EventArgs.Empty);
+    private void OnSchedule(object sender, RoutedEventArgs e) => ScheduleRequested?.Invoke(this, EventArgs.Empty);
     private void OnClose(object sender, RoutedEventArgs e) => Close();
 }

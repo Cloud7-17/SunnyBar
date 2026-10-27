@@ -4,7 +4,7 @@
 
 Windows x64、.NET SDK 10.0.403。global.json 固定该版本且关闭 roll-forward；CI 从相同文件安装 SDK，避免构建机自动选择其他 feature/patch 版本。更新 SDK 时先修改 global.json 并重新验证。便携用户不需要 SDK。
 
-应用版本在 Directory.Build.props 中，当前 0.2.0-preview.1。自包含运行时版本固定于 SunnyBar.App.csproj，当前 10.0.14；更新 .NET 补丁时须修改它、重新打包并回归。日常开发构建仍使用已安装共享运行时。
+应用版本在 Directory.Build.props 中，当前 0.3.0-preview.1。自包含运行时版本固定于 SunnyBar.App.csproj，当前 10.0.14；更新 .NET 补丁时须修改它、重新打包并回归。日常开发构建仍使用已安装共享运行时。
 
 依赖恢复需要访问 NuGet 官方源；便携包运行离线。请使用可信 SDK 和依赖源。
 
@@ -17,6 +17,7 @@ dotnet restore SunnyBar.slnx
 dotnet build SunnyBar.slnx -c Release --no-restore -m:1 -nr:false
 dotnet test SunnyBar.slnx -c Release --no-build --no-restore -m:1 -nr:false --logger trx --results-directory artifacts/test-results
 dotnet run --project tools/SunnyBar.VisualChecks -c Release -- artifacts/visual-checks
+dotnet run --project tools/SunnyBar.VisualChecks -c Release -- artifacts/runtime-checks --runtime-check
 ./scripts/publish.ps1 -Dotnet dotnet
 ```
 
@@ -34,17 +35,17 @@ VisualChecks 是隔离的 WPF 绑定检查与演示图生成器。使用固定�
 
 输出：
 
-- artifacts/releases/SunnyBar-0.2.0-preview.1-win-x64.zip
+- artifacts/releases/SunnyBar-0.3.0-preview.1-win-x64.zip
 - 同名 .zip.sha256：整个 ZIP 的 SHA256
-- artifacts/staging/<随机编号>/SunnyBar-0.2.0-preview.1-win-x64：本次未压缩文件
+- artifacts/staging/<随机编号>/SunnyBar-0.3.0-preview.1-win-x64：本次未压缩文件
 
 不承诺 ZIP 字节级复现：时间戳与归档元数据会变化。构建步骤、源码版本、SDK 与运行时版本均可明确复用。
 
 ## 解压校验
 
 ```powershell
-Expand-Archive ./artifacts/releases/SunnyBar-0.2.0-preview.1-win-x64.zip -DestinationPath ./artifacts/unpacked-check
-./scripts/verify-portable.ps1 -Directory ./artifacts/unpacked-check/SunnyBar-0.2.0-preview.1-win-x64
+Expand-Archive ./artifacts/releases/SunnyBar-0.3.0-preview.1-win-x64.zip -DestinationPath ./artifacts/unpacked-check
+./scripts/verify-portable.ps1 -Directory ./artifacts/unpacked-check/SunnyBar-0.3.0-preview.1-win-x64
 ```
 
 校验每个文件的哈希，拒绝清单外文件、重复条目和逃逸路径，检查自包含 runtimeconfig 与必要运行时文件。SHA256 证明文件完整性，不代表代码签名或可信来源认证。

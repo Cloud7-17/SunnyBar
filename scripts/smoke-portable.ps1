@@ -6,6 +6,8 @@ $exe = Join-Path $packageRoot 'SunnyBar.App.exe'
 if (Get-Process SunnyBar.App -ErrorAction SilentlyContinue) { throw 'Exit the running Sunny Bar from its tray before testing the package.' }
 $settingsPath = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'SunnyBar/settings.json'
 $settingsBefore = if (Test-Path -LiteralPath $settingsPath) { (Get-FileHash -LiteralPath $settingsPath).Hash } else { '' }
+$eventsPath = Join-Path (Split-Path -Parent $settingsPath) 'events.json'
+$eventsBefore = if (Test-Path -LiteralPath $eventsPath) { (Get-FileHash -LiteralPath $eventsPath).Hash } else { '' }
 $runPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
 $startupBefore = (Get-ItemProperty -LiteralPath $runPath -Name SunnyBar -ErrorAction SilentlyContinue).SunnyBar
 if (-not ('SunnyBarPackageNative' -as [type])) {
@@ -63,8 +65,10 @@ try {
     if (-not $process.WaitForExit(10000) -or $process.ExitCode -ne 0) { throw 'Portable application did not exit cleanly.' }
     $settingsAfter = if (Test-Path -LiteralPath $settingsPath) { (Get-FileHash -LiteralPath $settingsPath).Hash } else { '' }
     $startupAfter = (Get-ItemProperty -LiteralPath $runPath -Name SunnyBar -ErrorAction SilentlyContinue).SunnyBar
+    $eventsAfter = if (Test-Path -LiteralPath $eventsPath) { (Get-FileHash -LiteralPath $eventsPath).Hash } else { '' }
+    if ($eventsBefore -ne $eventsAfter) { throw 'Startup smoke test changed user events.' }
     if ($settingsBefore -ne $settingsAfter -or $startupBefore -ne $startupAfter) { throw 'Startup smoke test changed user configuration or startup registration.' }
-    $result = [ordered]@{ result='PASS'; executable=$exe; version=(Get-Item -LiteralPath $exe).VersionInfo.ProductVersion; packagedRuntime=$coreclr.FileName; dotnetRoot=$invalidRuntime; path=$info.EnvironmentVariables['PATH']; windowStyles=('0x{0:X}' -f $style); secondInstanceExitCode=0; shutdownExitCode=0; settingsPreserved=$true; startupPreserved=$true }
+    $result = [ordered]@{ result='PASS'; executable=$exe; version=(Get-Item -LiteralPath $exe).VersionInfo.ProductVersion; packagedRuntime=$coreclr.FileName; dotnetRoot=$invalidRuntime; path=$info.EnvironmentVariables['PATH']; windowStyles=('0x{0:X}' -f $style); secondInstanceExitCode=0; shutdownExitCode=0; settingsPreserved=$true; eventsPreserved=$true; startupPreserved=$true }
     if ($ResultPath) { $result | ConvertTo-Json | Set-Content -LiteralPath $ResultPath -Encoding utf8 }
     $result | ConvertTo-Json
 }

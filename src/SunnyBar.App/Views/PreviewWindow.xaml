@@ -2,8 +2,8 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="clr-namespace:SunnyBar.App.Controls"
-        Title="Sunny Bar — 时间轴预览" Width="960" Height="500"
-        MinWidth="620" MinHeight="500" WindowStartupLocation="CenterScreen"
+        Title="Sunny Bar — 时间轴预览" Width="960" Height="560"
+        MinWidth="620" MinHeight="560" WindowStartupLocation="CenterScreen"
         Background="#182230" Foreground="#E8EEF5" FontFamily="Segoe UI">
     <Grid Margin="28,22">
         <Grid.RowDefinitions>
@@ -29,10 +29,12 @@
             <TextBlock Text="{Binding DailyMarkersText}"
                        Foreground="#A0B1C4" FontSize="12" TextWrapping="Wrap" Margin="0,8,0,0" />
             <TextBlock Text="{Binding IndicatorMessage}" Foreground="#FFCF70" TextWrapping="Wrap"/>
+            <TextBlock Text="{Binding CurrentScheduleText}" Foreground="#FFCF70" Margin="0,6,0,0" TextTrimming="CharacterEllipsis" ToolTip="{Binding CurrentScheduleText}"/>
+            <TextBlock Text="{Binding NextScheduleText}" Foreground="#A0B1C4" TextTrimming="CharacterEllipsis" ToolTip="{Binding NextScheduleText}"/>
         </StackPanel>
         <controls:TimelineControl Grid.Row="4" Snapshot="{Binding Snapshot}" IndicatorImage="{Binding IndicatorImage}" MinHeight="132"
                                   AutomationProperties.Name="04:00 至次日 04:00 时间轴" />
-        <TextBlock Grid.Row="5" Text="M4 · 设置保存后立即更新；关闭预览后悬浮条继续运行。"
+        <TextBlock Grid.Row="5" Text="单次日程分层显示，当前区间以白框突出；关闭预览后悬浮条继续运行。"
                    Foreground="#A0B1C4" FontSize="12" />
     </Grid>
 </Window>

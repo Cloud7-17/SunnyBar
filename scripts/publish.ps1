@@ -32,7 +32,7 @@ try {
         $notices | Copy-Item -Destination $licenseTarget
     }
     Copy-Item -LiteralPath LICENSE, THIRD_PARTY_NOTICES.md -Destination $stage
-    foreach ($doc in @('SETTINGS.md','PRIVACY.md','SOLAR_CALCULATION.md','RELEASE_CHECKLIST.md')) {
+    foreach ($doc in @('SETTINGS.md','SCHEDULES.md','PRIVACY.md','SOLAR_CALCULATION.md','RELEASE_CHECKLIST.md')) {
         Copy-Item -LiteralPath (Join-Path 'docs' $doc) -Destination $stage
     }
     Copy-Item -LiteralPath docs/PORTABLE_GUIDE.md -Destination (Join-Path $stage 'README.md')
