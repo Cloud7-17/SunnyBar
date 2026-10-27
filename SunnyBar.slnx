@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SunnyBar.Core/SunnyBar.Core.csproj" />
+    <Project Path="src/SunnyBar.App/SunnyBar.App.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/SunnyBar.Tests/SunnyBar.Tests.csproj" />
+  </Folder>
+</Solution>

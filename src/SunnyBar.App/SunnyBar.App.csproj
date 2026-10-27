@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Description>A local, offline daily timeline above the Windows taskbar.</Description>
+    <RuntimeFrameworkVersion Condition="'$(SelfContained)' == 'true'">10.0.14</RuntimeFrameworkVersion>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <!-- WPF owns DPI awareness through app.manifest; WinForms is only used for NotifyIcon.
+         https://github.com/dotnet/wpf/issues/6811 -->
+    <NoWarn>$(NoWarn);WFO0003</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <Using Include="System" />
+    <Using Include="System.Collections.Generic" />
+    <Using Include="System.Linq" />
+    <Using Include="System.Threading" />
+    <ProjectReference Include="../SunnyBar.Core/SunnyBar.Core.csproj" />
+  </ItemGroup>
+</Project>

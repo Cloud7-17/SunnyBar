@@ -1,0 +1,38 @@
+<Window x:Class="SunnyBar.App.Views.PreviewWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:SunnyBar.App.Controls"
+        Title="Sunny Bar — 时间轴预览" Width="960" Height="500"
+        MinWidth="620" MinHeight="500" WindowStartupLocation="CenterScreen"
+        Background="#182230" Foreground="#E8EEF5" FontFamily="Segoe UI">
+    <Grid Margin="28,22">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <TextBlock Text="Sunny Bar · 设置与预览" FontSize="23" FontWeight="SemiBold" />
+        <TextBlock Grid.Row="1" Text="{Binding DisplayDayText}" Margin="0,12,0,0" FontSize="15" />
+        <StackPanel Grid.Row="2" Margin="0,8,0,0">
+            <TextBlock Text="{Binding CurrentTimeText}" Foreground="#FFCF70" FontSize="16" />
+            <TextBlock Text="{Binding TimeZoneText}" Foreground="#A0B1C4" Margin="0,6,0,0" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding SolarText}" Foreground="#A0B1C4" Margin="0,6,0,0" TextWrapping="Wrap" />
+        </StackPanel>
+        <StackPanel Grid.Row="3" Margin="0,14,0,0">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Content="打开设置…" Click="OnOpenSettings" Padding="12,5"/>
+                <TextBlock Text="{Binding SelectedLocation.Name}" VerticalAlignment="Center"/>
+            </DockPanel>
+            <TextBlock Text="{Binding DailyMarkersText}"
+                       Foreground="#A0B1C4" FontSize="12" TextWrapping="Wrap" Margin="0,8,0,0" />
+            <TextBlock Text="{Binding IndicatorMessage}" Foreground="#FFCF70" TextWrapping="Wrap"/>
+        </StackPanel>
+        <controls:TimelineControl Grid.Row="4" Snapshot="{Binding Snapshot}" IndicatorImage="{Binding IndicatorImage}" MinHeight="132"
+                                  AutomationProperties.Name="04:00 至次日 04:00 时间轴" />
+        <TextBlock Grid.Row="5" Text="M4 · 设置保存后立即更新；关闭预览后悬浮条继续运行。"
+                   Foreground="#A0B1C4" FontSize="12" />
+    </Grid>
+</Window>

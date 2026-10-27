@@ -1,0 +1,63 @@
+name: Windows build and portable package
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: windows-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+      DOTNET_NOLOGO: '1'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - name: Restore
+        run: dotnet restore SunnyBar.slnx
+      - name: Build Release
+        run: dotnet build SunnyBar.slnx -c Release --no-restore -m:1 -nr:false
+      - name: Test
+        run: dotnet test SunnyBar.slnx -c Release --no-build --no-restore -m:1 -nr:false --logger trx --results-directory artifacts/test-results
+      - name: Check WPF bindings and render examples
+        run: dotnet run --project tools/SunnyBar.VisualChecks -c Release -- artifacts/visual-checks
+      - name: Build and verify portable package
+        shell: pwsh
+        run: ./scripts/publish.ps1 -Dotnet dotnet
+      - name: Start the unpacked application with its own runtime
+        shell: pwsh
+        run: |
+          $zip = Get-ChildItem artifacts/releases/*.zip | Select-Object -First 1
+          Expand-Archive -LiteralPath $zip.FullName -DestinationPath artifacts/portable-smoke
+          $package = Get-ChildItem artifacts/portable-smoke -Directory | Select-Object -First 1
+          ./scripts/verify-portable.ps1 -Directory $package.FullName
+          ./scripts/smoke-portable.ps1 -Directory $package.FullName -ResultPath artifacts/portable-smoke-result.json
+      - name: Upload test and visual results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-validation
+          path: |
+            artifacts/test-results/*.trx
+            artifacts/visual-checks/*.png
+            artifacts/visual-checks/result.txt
+            artifacts/portable-smoke-result.json
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Upload portable package
+        uses: actions/upload-artifact@v7
+        with:
+          name: SunnyBar-win-x64
+          path: artifacts/releases/*
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
