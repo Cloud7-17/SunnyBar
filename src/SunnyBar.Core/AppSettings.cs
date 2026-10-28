@@ -26,6 +26,7 @@ public sealed record AppearanceSettings
 {
     public double WidthRatio { get; init; } = 1;
     public double BarHeightDip { get; init; } = 16;
+    public double ScheduleHeightRatio { get; init; } = 0.4;
     public double OffsetFromTaskbarDip { get; init; }
     public double Opacity { get; init; } = 0.92;
     public string NightColor { get; init; } = "#28324B";

@@ -1,22 +1,16 @@
 using System.Windows;
 using SunnyBar.App.ViewModels;
-
 namespace SunnyBar.App.Views;
 
-public partial class ScheduleWindow : Window
+public sealed class ScheduleWindow : Window
 {
-    private readonly ScheduleEditorViewModel editor;
-    public ScheduleWindow(ScheduleEditorViewModel editor) { this.editor = editor; InitializeComponent(); DataContext = editor; }
-    private void OnNew(object sender, RoutedEventArgs e) => editor.New();
-    private void OnSave(object sender, RoutedEventArgs e) => editor.Save();
-    private void OnDelete(object sender, RoutedEventArgs e) => editor.Delete();
-    private void OnClose(object sender, RoutedEventArgs e) => Close();
-    private void OnChooseColor(object sender, RoutedEventArgs e)
+    public ScheduleEditorView Editor { get; }
+    public ScheduleWindow(ScheduleEditorViewModel editor)
     {
-        using var dialog = new System.Windows.Forms.ColorDialog { FullOpen = true, Color = System.Drawing.ColorTranslator.FromHtml(editor.Color) };
-        var owner = new System.Windows.Forms.NativeWindow(); owner.AssignHandle(new System.Windows.Interop.WindowInteropHelper(this).Handle);
-        try { if (dialog.ShowDialog(owner) == System.Windows.Forms.DialogResult.OK) editor.Color = $"#{dialog.Color.R:X2}{dialog.Color.G:X2}{dialog.Color.B:X2}"; }
-        finally { owner.ReleaseHandle(); }
+        Title="Sunny Bar — 日程"; Width=1000; Height=850; MinWidth=860; MinHeight=760;
+        WindowStartupLocation=WindowStartupLocation.CenterScreen;
+        DataContext=editor; Content=Editor=new(editor);
+        Editor.CloseRequested+=(_,_)=>Close();
+        Closed+=(_,_)=>Editor.Dispose();
     }
-    protected override void OnClosed(EventArgs e) { editor.Dispose(); base.OnClosed(e); }
 }

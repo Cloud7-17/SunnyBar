@@ -14,9 +14,11 @@ public partial class BarWindow : Window
     private WindowPlacementService? placement;
     private bool placementQueued;
     private bool closed;
+    private readonly SunnyBar.Core.BarDoubleClickTracker clicks = new();
     private readonly uint showMessage = NativeMethods.RegisterWindowMessage(NativeMethods.ShowMessageName);
     public event EventHandler<bool>? ShowRequested;
     public event EventHandler<string>? PlacementFailed;
+    public event EventHandler? EditRequested;
 
     public BarWindow(TimelineViewModel viewModel)
     {
@@ -29,8 +31,8 @@ public partial class BarWindow : Window
         base.OnSourceInitialized(e);
         var handle = new WindowInteropHelper(this).Handle;
         var style = NativeMethods.GetExtendedStyle(handle);
-        NativeMethods.SetExtendedStyle(handle, (style | NativeMethods.Layered | NativeMethods.Transparent
-            | NativeMethods.ToolWindow | NativeMethods.NoActivate) & ~NativeMethods.AppWindow);
+        NativeMethods.SetExtendedStyle(handle, (style | NativeMethods.Layered
+            | NativeMethods.ToolWindow | NativeMethods.NoActivate) & ~(NativeMethods.AppWindow | NativeMethods.Transparent));
         source = HwndSource.FromHwnd(handle);
         source?.AddHook(WindowMessage);
         placement = new WindowPlacementService(this, handle);
@@ -68,12 +70,27 @@ public partial class BarWindow : Window
         }
         switch (message)
         {
-            case 0x0084: // WM_NCHITTEST; layered+transparent style handles other processes too.
+            case 0x0084: // Only the visible bar accepts input; the icon/empty area stays transparent.
                 handled = true;
+                if (NativeMethods.GetWindowRect(hwnd, out var bounds))
+                {
+                    var y = (short)((lParam.ToInt64() >> 16) & 0xffff);
+                    var scale = NativeMethods.GetDpiForWindow(hwnd) / 96.0;
+                    var height = ((TimelineViewModel)DataContext).Settings.Appearance.BarHeightDip;
+                    if (y >= bounds.Top + 16 * scale && y < bounds.Top + (16 + height) * scale) return new nint(1);
+                }
                 return new nint(-1);
             case 0x0021: // WM_MOUSEACTIVATE
                 handled = true;
-                return new nint(3);
+                return new nint(3); // MA_NOACTIVATE: double-click explicitly activates the editor.
+            case 0x0201: // WM_LBUTTONDOWN
+            case 0x0203: // WM_LBUTTONDBLCLK, depending on the registered window class.
+                var size = System.Windows.Forms.SystemInformation.DoubleClickSize;
+                if (clicks.Register(Environment.TickCount64, (short)(lParam.ToInt64() & 0xffff),
+                    (short)((lParam.ToInt64() >> 16) & 0xffff), System.Windows.Forms.SystemInformation.DoubleClickTime, size.Width, size.Height))
+                    EditRequested?.Invoke(this, EventArgs.Empty);
+                handled = true;
+                break;
             case 0x007e: // WM_DISPLAYCHANGE
             case 0x001a: // WM_SETTINGCHANGE (includes work-area/taskbar changes)
             case 0x02e0: // WM_DPICHANGED; let WPF process DPI, then anchor again.

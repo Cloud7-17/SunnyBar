@@ -23,7 +23,7 @@ public sealed class TrayService : IDisposable
         menu = new Forms.ContextMenuStrip();
         visibility = new Forms.ToolStripMenuItem("隐藏时间条", null, (_, _) => toggle());
         menu.Items.Add(visibility);
-        menu.Items.Add("设置…", null, (_, _) => openPreview());
+        menu.Items.Add("标记与设置…", null, (_, _) => openPreview());
         if (openSchedule is not null)
         {
             menu.Items.Add("日程…", null, (_, _) => openSchedule());

@@ -24,6 +24,7 @@ public sealed class ScheduleEditorViewModel : INotifyPropertyChanged, IDisposabl
     public ObservableCollection<ScheduleRow> Events { get; } = [];
     public bool CanSave { get; }
     public bool HasSelection => selected is not null && CanSave;
+    public bool CanClearAll => CanSave && Events.Count > 0;
     public string TimeZoneText => "时区：" + zone.DisplayName + "。单次日程按日期保存；重复小时默认第一次，编辑已有日程保留原偏移。";
     public string CurrentText => timeline.CurrentScheduleText;
     public string NextText => timeline.NextScheduleText;
@@ -53,15 +54,25 @@ public sealed class ScheduleEditorViewModel : INotifyPropertyChanged, IDisposabl
         var loaded = store.Load(); document = loaded.Document; CanSave = loaded.CanSave;
         Status = initialMessage + loaded.Message;
         timeline.ApplySchedule(document);
-        ReloadRows(); New();
+        ReloadRows(); Selected = Events.FirstOrDefault();
         timeline.PropertyChanged += OnTimelineChanged;
     }
     public void New()
     {
-        selected = null; Title = ""; Notes = ""; color = "#5AA9E6";
-        var now = TimeZoneInfo.ConvertTime(timeline.Snapshot!.Now, zone);
-        var start = now.Date.AddHours(now.Hour).AddMinutes(now.Minute + (30 - now.Minute % 30));
-        SetDates(start, start.AddHours(1)); Notify();
+        try
+        {
+            if (!CanSave) throw new IOException("日程文件受保护，不能新建。");
+            var now = TimeZoneInfo.ConvertTime(timeline.Snapshot!.Now, zone);
+            // Round the instant forward, so a DST jump never creates a nonexistent wall time.
+            var start = now.AddTicks(-(now.Ticks % TimeSpan.TicksPerMinute)).AddMinutes(30 - now.Minute % 30);
+            var item = new ScheduleEvent { Title = "新日程", StartAt = TimeZoneInfo.ConvertTime(start, zone), EndAt = TimeZoneInfo.ConvertTime(start.AddHours(1), zone) };
+            var candidate = document with { Events = document.Events.Append(item).ToList() };
+            store.Save(candidate); document = candidate; timeline.ApplySchedule(document);
+            ReloadRows(); Selected = Events.First(row => row.Event.Id == item.Id);
+            Status = "已新建日程。可在下方编辑，点击“保存修改”更新。"; Notify();
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or SettingsValidationException or ArgumentException)
+        { Status = "未新建：" + error.Message; Notify(); }
     }
     private void Fill(ScheduleEvent item)
     {
@@ -80,8 +91,8 @@ public sealed class ScheduleEditorViewModel : INotifyPropertyChanged, IDisposabl
         {
             if (!CanSave) throw new IOException("日程文件受保护，不能覆盖保存。");
             if (StartDate is not { } startDate || EndDate is not { } endDate) throw new FormatException("请选择开始日期和结束日期。");
-            var original = selected?.Event;
-            var item = (original ?? new ScheduleEvent()) with
+            var original = selected?.Event ?? throw new FormatException("请先新建或选择日程，再保存修改。");
+            var item = original with
             {
                 Title = Title.Trim(), Notes = Notes.Trim(), Color = Color,
                 StartAt = ScheduleTimeResolver.Resolve(startDate, StartHour, StartMinute, zone,
@@ -110,13 +121,27 @@ public sealed class ScheduleEditorViewModel : INotifyPropertyChanged, IDisposabl
         try
         {
             var candidate = document with { Events = document.Events.Where(item => item.Id != selected!.Event.Id).ToList() };
-            store.Save(candidate); document = candidate; timeline.ApplySchedule(document); ReloadRows(); New();
+            store.Save(candidate); document = candidate; timeline.ApplySchedule(document); ReloadRows();
+            Title = ""; Notes = ""; Selected = Events.FirstOrDefault();
             Status = "已删除选中日程。"; Notify(); return true;
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or SettingsValidationException)
         { Status = "未删除：" + error.Message; Notify(); return false; }
     }
     private void ReloadRows() { selected = null; Events.Clear(); foreach (var item in document.Events.OrderBy(item => item.StartAt)) Events.Add(new(item, zone)); }
+    public bool ClearAll()
+    {
+        if (!CanClearAll) return false;
+        try
+        {
+            var candidate = document with { Events = [] };
+            store.Save(candidate); document = candidate; timeline.ApplySchedule(document);
+            ReloadRows(); Title = ""; Notes = ""; StartDate = EndDate = null;
+            Status = "已清除全部日程并立即保存。"; Notify(); return true;
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or SettingsValidationException)
+        { Status = "未清除：" + error.Message; Notify(); return false; }
+    }
     private void OnTimelineChanged(object? sender, PropertyChangedEventArgs e) { Notify(nameof(CurrentText)); Notify(nameof(NextText)); }
     private void Notify(string property = "") => PropertyChanged?.Invoke(this, new(property));
     public void Dispose() => timeline.PropertyChanged -= OnTimelineChanged;

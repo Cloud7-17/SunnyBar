@@ -5,7 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <Deterministic>true</Deterministic>
-    <Version>0.3.0-preview.1</Version>
+    <Version>0.3.0-preview.4</Version>
     <Product>Sunny Bar</Product>
     <Authors>Sunny Bar contributors</Authors>
     <Copyright>Copyright (c) 2026 Sunny Bar contributors</Copyright>

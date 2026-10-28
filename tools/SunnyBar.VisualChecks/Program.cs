@@ -26,7 +26,7 @@ internal static class Program
         var editor = new SettingsEditorViewModel(model, store, new NoStartup(), "演示数据 · 不修改用户配置", true);
         if (editor.City != 1) throw new Exception("Expected Beijing preset.");
         var window = new SettingsWindow(editor);
-        var tabs = (TabControl)window.FindName("SettingsTabs");
+        var tabs = (TabControl)window.Editor.FindName("SettingsTabs");
         if (interactive)
         {
             tabs.SelectedIndex = 3;
@@ -35,9 +35,18 @@ internal static class Program
             return;
         }
         Render(window, 820, 680, Path.Combine(output, "settings-location.png"));
+        tabs.SelectedIndex = 1;
+        Render(window, 820, 680, Path.Combine(output, "settings-appearance.png"));
+        var ratio = Descendants((DependencyObject)window.Content).OfType<TextBox>().Single(control => control.GetBindingExpression(TextBox.TextProperty)?.ParentBinding.Path.Path == "ScheduleHeightPercent");
+        ratio.SetCurrentValue(TextBox.TextProperty, "25"); ratio.GetBindingExpression(TextBox.TextProperty)!.UpdateSource();
+        if (!editor.Apply() || store.Load().Settings.Appearance.ScheduleHeightRatio != 0.25) throw new Exception("Schedule height binding did not persist");
+        var ratioBefore = File.ReadAllText(store.FilePath);
+        ratio.SetCurrentValue(TextBox.TextProperty, "0"); ratio.GetBindingExpression(TextBox.TextProperty)!.UpdateSource();
+        if (editor.Apply() || File.ReadAllText(store.FilePath) != ratioBefore) throw new Exception("Invalid schedule height changed file");
+        ratio.SetCurrentValue(TextBox.TextProperty, "50"); ratio.GetBindingExpression(TextBox.TextProperty)!.UpdateSource();
         tabs.SelectedIndex = 3;
         Render(window, 820, 680, Path.Combine(output, "settings-markers.png"));
-        var grid = (DataGrid)window.FindName("MarkersGrid");
+        var grid = (DataGrid)window.Editor.FindName("MarkersGrid");
         var combos = Descendants(grid).OfType<ComboBox>().ToArray();
         var hour = combos.First(control => control.GetBindingExpression(ComboBox.TextProperty)?.ParentBinding.Path.Path == "Hour");
         var minute = combos.First(control => control.GetBindingExpression(ComboBox.TextProperty)?.ParentBinding.Path.Path == "Minute");
@@ -65,6 +74,7 @@ internal static class Program
         Save(content, Brushes.Transparent, (int)Math.Ceiling(content.ActualWidth), (int)Math.Ceiling(content.ActualHeight), Path.Combine(output, "hover.png"));
         hover.Close(); window.Close();
         ScheduleChecks.Run(model, store, output);
+        BulkClearChecks.Run(output);
         File.WriteAllText(Path.Combine(output, "result.txt"), "PASS: Beijing default, real WPF hour/minute/palette bindings, save/reload, invalid-hour preservation, next marker, schedule CRUD/projection, rendering. No user settings or real startup registration changed.");
         Console.WriteLine("PASS: isolated WPF binding and render checks. Output: " + output);
     }

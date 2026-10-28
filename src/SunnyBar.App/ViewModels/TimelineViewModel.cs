@@ -60,6 +60,10 @@ public sealed class TimelineViewModel(IClock clock) : INotifyPropertyChanged
     public string HoverTimeText => Snapshot is { } state ? $"当前 {state.Now:HH:mm}" : "";
     public string NextMarkerText => NextMarker is { } marker ? $"下一标记：{marker.Label} {marker.Instant:HH:mm}" : "下一标记：暂无";
     public string RemainingText => NextMarker is { } marker ? "还有 " + marker.RemainingText : "";
+    private ScheduleHoverInfo HoverSchedule => Snapshot is { } state
+        ? ScheduleHoverInfo.Capture(state.Schedule, state.Now, lastZone) : new("当前日程：暂无", "下一日程：暂无");
+    public string HoverCurrentScheduleText => HoverSchedule.CurrentText;
+    public string HoverNextScheduleText => HoverSchedule.NextText;
     public string CurrentScheduleText => Snapshot?.Schedule?.Current is { Count: > 0 } current
         ? "当前日程：" + string.Join(" · ", current.Take(3).Select(item => item.Title)) + (current.Count > 3 ? $" 等 {current.Count} 项" : "") : "当前日程：暂无";
     public string NextScheduleText => Snapshot?.Schedule?.Next is { } next

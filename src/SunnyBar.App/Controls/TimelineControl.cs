@@ -83,8 +83,9 @@ public sealed class TimelineControl : FrameworkElement
         if (state.Schedule is { Segments.Count: > 0 } schedule)
         {
             var lanes = schedule.Segments.Max(segment => segment.Lane) + 1;
-            var laneHeight = barHeight / lanes;
-            drawingContext.PushClip(new RectangleGeometry(new Rect(left, barTop, width, barHeight)));
+            var scheduleHeight = barHeight * appearance.ScheduleHeightRatio;
+            var laneHeight = scheduleHeight / lanes;
+            drawingContext.PushClip(new RectangleGeometry(new Rect(left, barTop, width, scheduleHeight)));
             foreach (var segment in schedule.Segments)
             {
                 var color = (Color)ColorConverter.ConvertFromString(segment.Event.Color);
@@ -95,6 +96,17 @@ public sealed class TimelineControl : FrameworkElement
                 drawingContext.DrawRectangle(fill, new Pen(outline, segment.IsCurrent ? 2 : 1), rect);
             }
             drawingContext.Pop();
+            foreach (var boundary in ScheduleService.Boundaries(schedule, state.Window))
+            {
+                var x = mapper.ToX(boundary.Instant, state.Window, left, width);
+                var brush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(boundary.Event.Color));
+                drawingContext.DrawLine(new Pen(brush, 1.5), new Point(x, barTop - 4), new Point(x, barTop + barHeight - 0.75));
+                var endpointCenter = new Point(Math.Clamp(x, left + 3, left + width - 3), barTop - 6);
+                if (boundary.IsStart)
+                    drawingContext.DrawRectangle(brush, new Pen(Brushes.White, 0.7), new Rect(endpointCenter.X - 2.5, endpointCenter.Y - 2.5, 5, 5));
+                else
+                    drawingContext.DrawEllipse(Brushes.White, new Pen(brush, 1.5), endpointCenter, 2.5, 2.5);
+            }
         }
 
         var labelBounds = new List<Rect>();

@@ -38,7 +38,7 @@ $info.EnvironmentVariables['PATH'] = Join-Path $env:SystemRoot 'System32'
 $process = [Diagnostics.Process]::Start($info)
 try {
     $barHandle = [IntPtr]::Zero
-    [long]$required = 0x20 -bor 0x80 -bor 0x80000 -bor 0x08000000 -bor 0x8
+    [long]$required = 0x80 -bor 0x80000 -bor 0x08000000 -bor 0x8
     $deadline = [DateTime]::UtcNow.AddSeconds(45)
     while ([DateTime]::UtcNow -lt $deadline -and -not $process.HasExited) {
         $candidate = [SunnyBarPackageNative]::FindOverlay()
@@ -55,7 +55,7 @@ try {
     $coreclr = $process.Modules | Where-Object ModuleName -EQ 'coreclr.dll' | Select-Object -First 1
     if (-not $coreclr -or -not [string]::Equals($coreclr.FileName, (Join-Path $packageRoot 'coreclr.dll'), [StringComparison]::OrdinalIgnoreCase)) { throw 'Process did not load the packaged .NET runtime.' }
     $style = [SunnyBarPackageNative]::GetWindowLongPtr($barHandle,-20).ToInt64()
-    if (($style -band $required) -ne $required) { throw 'Overlay pass-through/no-activate/tool-window/topmost styles missing.' }
+    if (($style -band $required) -ne $required -or ($style -band 0x20) -ne 0) { throw 'Interactive-bar/no-activate/tool-window/topmost styles incorrect.' }
     $second = [Diagnostics.Process]::Start($info)
     try {
         if (-not $second.WaitForExit(10000) -or $second.ExitCode -ne 0 -or $process.HasExited) { throw 'Single-instance launch failed.' }

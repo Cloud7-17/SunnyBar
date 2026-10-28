@@ -2,6 +2,16 @@ namespace SunnyBar.Core;
 
 public sealed class ScheduleService
 {
+    public static IEnumerable<(ScheduleEvent Event, DateTimeOffset Instant, bool IsStart)> Boundaries(ScheduleState state, DisplayDayWindow window)
+    {
+        foreach (var segment in state.Segments)
+        {
+            if (segment.Event.StartAt >= window.Start && segment.Event.StartAt < window.End)
+                yield return (segment.Event, segment.Event.StartAt, true);
+            if (segment.Event.EndAt > window.Start && segment.Event.EndAt <= window.End)
+                yield return (segment.Event, segment.Event.EndAt, false);
+        }
+    }
     public ScheduleState Capture(IReadOnlyList<ScheduleEvent> events, DisplayDayWindow window, DateTimeOffset now)
     {
         var mapper = new TimeAxisMapper();
