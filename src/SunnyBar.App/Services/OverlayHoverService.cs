@@ -9,7 +9,7 @@ using SunnyBar.App.Views;
 
 namespace SunnyBar.App.Services;
 
-/// <summary>Passive cursor observation keeps both the timeline and its information popup click-through.</summary>
+/// <summary>Observes hover without input hooks; the information popup remains click-through.</summary>
 public sealed class OverlayHoverService : IDisposable
 {
     private readonly BarWindow bar;

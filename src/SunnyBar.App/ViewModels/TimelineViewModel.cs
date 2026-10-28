@@ -11,6 +11,7 @@ public sealed class TimelineViewModel(IClock clock) : INotifyPropertyChanged
 {
     private readonly TimelineService timeline = new(clock);
     public AppSettings Settings { get; private set; } = new();
+    public ScheduleDocument Schedule { get; private set; } = new();
     public BitmapSource? IndicatorImage { get; private set; }
     public string IndicatorMessage { get; private set; } = "";
     public event EventHandler? SettingsChanged;
@@ -51,6 +52,13 @@ public sealed class TimelineViewModel(IClock clock) : INotifyPropertyChanged
                 $"{(marker.Kind == SolarEventKind.Sunrise ? "日出" : "日落")} {marker.Instant:MM-dd HH:mm}"))
             : string.Empty)
         : string.Empty;
+    public string PreviewSolarStatus => Snapshot is not { } state ? "" : state.Solar?.State switch
+    {
+        SolarWindowState.DayOnly => "极昼",
+        SolarWindowState.NightOnly => "极夜",
+        null => SelectedLocation.Coordinates is null ? "未选择地点" : "日出日落暂不可用",
+        _ => ""
+    };
     public string DailyMarkersText => Snapshot?.DailyMarkers is { Count: > 0 } markers
         ? "每日标记：" + string.Join(" · ", markers.Take(4).Select(marker => $"{marker.Label} {marker.Instant:HH:mm}"))
             + (markers.Count > 4 ? $" 等共 {markers.Count} 个" : "") : "";
@@ -59,6 +67,15 @@ public sealed class TimelineViewModel(IClock clock) : INotifyPropertyChanged
     public string HoverTimeText => Snapshot is { } state ? $"当前 {state.Now:HH:mm}" : "";
     public string NextMarkerText => NextMarker is { } marker ? $"下一标记：{marker.Label} {marker.Instant:HH:mm}" : "下一标记：暂无";
     public string RemainingText => NextMarker is { } marker ? "还有 " + marker.RemainingText : "";
+    private ScheduleHoverInfo HoverSchedule => Snapshot is { } state
+        ? ScheduleHoverInfo.Capture(state.Schedule, state.Now, lastZone) : new("当前日程：暂无", "下一日程：暂无");
+    public string HoverCurrentScheduleText => HoverSchedule.CurrentText;
+    public string HoverNextScheduleText => HoverSchedule.NextText;
+    public string CurrentScheduleText => Snapshot?.Schedule?.Current is { Count: > 0 } current
+        ? "当前日程：" + string.Join(" · ", current.Take(3).Select(item => item.Title)) + (current.Count > 3 ? $" 等 {current.Count} 项" : "") : "当前日程：暂无";
+    public string NextScheduleText => Snapshot?.Schedule?.Next is { } next
+        ? $"下一日程：{next.Title} · {TimeZoneInfo.ConvertTime(next.StartAt, lastZone):MM-dd HH:mm}" : "下一日程：暂无";
+    public void ApplySchedule(ScheduleDocument document) { Schedule = document; Refresh(lastZone); }
 
     public void ApplySettings(AppSettings settings, SettingsService store)
     {
@@ -78,7 +95,7 @@ public sealed class TimelineViewModel(IClock clock) : INotifyPropertyChanged
     public void Refresh(TimeZoneInfo timeZone)
     {
         lastZone = timeZone;
-        Snapshot = timeline.Capture(timeZone, SelectedLocation.Coordinates, Settings.DailyMarkers, Settings.Appearance);
+        Snapshot = timeline.Capture(timeZone, SelectedLocation.Coordinates, Settings.DailyMarkers, Settings.Appearance, Schedule.Events);
         NextMarker = new NextDailyMarkerService().Find(Snapshot.Now, timeZone, Settings.DailyMarkers);
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(string.Empty));
     }

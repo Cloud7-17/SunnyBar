@@ -91,7 +91,7 @@ public sealed class SolarTests
         Assert.Empty(result.Markers);
         Assert.Equal(0.84375, result.Stops[0].Daylight, 9);
         Assert.Equal(0.84375, result.Stops[^1].Daylight, 9);
-        Assert.Equal(window.Start.AddMinutes(-30), fake.LastStart);
+        Assert.Equal(new DisplayDayService(TimeZoneInfo.Utc).ResolveCalendarTime(window.Date, TimeOnly.MinValue), fake.LastStart);
         Assert.Equal(window.End.AddMinutes(30), fake.LastEnd);
     }
 

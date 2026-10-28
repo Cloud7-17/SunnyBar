@@ -69,6 +69,7 @@ public sealed class SettingsEditorViewModel : INotifyPropertyChanged
     public string Longitude { get; set; } = "";
     public string WidthPercent { get; set; }
     public string BarHeight { get; set; }
+    public string ScheduleHeightPercent { get; set; }
     public string Offset { get; set; }
     public string Opacity { get; set; }
     public string DayColor { get; set; }
@@ -84,6 +85,8 @@ public sealed class SettingsEditorViewModel : INotifyPropertyChanged
     public bool StartWithWindows { get; set; }
     public ObservableCollection<MarkerRow> Markers { get; }
     public MarkerRow? SelectedMarker { get; set; }
+    public int SavedMarkerCount => original.DailyMarkers.Count;
+    public bool CanClearMarkers => CanSave && (Markers.Count > 0 || SavedMarkerCount > 0);
     public string Status { get; private set; }
     public string SettingsPath => store.FilePath;
     public string VersionText => "版本 " + (typeof(SettingsEditorViewModel).Assembly
@@ -101,6 +104,7 @@ public sealed class SettingsEditorViewModel : INotifyPropertyChanged
         Status = message;
         var a = original.Appearance;
         WidthPercent = Format(a.WidthRatio * 100); BarHeight = Format(a.BarHeightDip);
+        ScheduleHeightPercent = Format(a.ScheduleHeightRatio * 100);
         Offset = Format(a.OffsetFromTaskbarDip); Opacity = Format(a.Opacity);
         DayColor = a.DayColor; NightColor = a.NightColor; Transition = a.TransitionMinutes.ToString(CultureInfo.CurrentCulture);
         ShowHourTicks = a.ShowHourTicks;
@@ -117,6 +121,7 @@ public sealed class SettingsEditorViewModel : INotifyPropertyChanged
         }
         StartWithWindows = original.StartWithWindows;
         Markers = new(original.DailyMarkers.Select(marker => new MarkerRow(marker)));
+        Markers.CollectionChanged += (_, _) => Notify();
     }
 
     public void Notify() => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(string.Empty));
@@ -127,6 +132,20 @@ public sealed class SettingsEditorViewModel : INotifyPropertyChanged
             Markers.Add(new(DailyMarkerPresets.All[index] with { Id = Guid.NewGuid().ToString("N") }));
     }
     public void RemoveMarker() { if (SelectedMarker is { } marker) Markers.Remove(marker); }
+    public bool ClearMarkers()
+    {
+        if (!CanClearMarkers) return false;
+        try
+        {
+            // Clear only markers; other unsaved settings remain drafts and startup registration is untouched.
+            var candidate = original with { DailyMarkers = [] };
+            store.Save(candidate); original = candidate;
+            Markers.Clear(); SelectedMarker = null; timeline.ApplySettings(candidate, store);
+            Status = "已清除全部每日标记并立即保存。其他未保存设置仍为草稿。"; Notify(); return true;
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or SettingsValidationException)
+        { Status = "未清除：" + error.Message; Notify(); return false; }
+    }
 
     public bool Apply()
     {
@@ -146,6 +165,7 @@ public sealed class SettingsEditorViewModel : INotifyPropertyChanged
                 {
                     WidthRatio = Number(WidthPercent, "宽度") / 100,
                     BarHeightDip = Number(BarHeight, "高度"), OffsetFromTaskbarDip = Number(Offset, "间距"),
+                    ScheduleHeightRatio = Number(ScheduleHeightPercent, "日程色带高度占比") / 100,
                     Opacity = Number(Opacity, "不透明度"), DayColor = DayColor.Trim(), NightColor = NightColor.Trim(),
                     TransitionMinutes = int.TryParse(Transition, CultureInfo.CurrentCulture, out var minutes)
                         ? minutes : throw new FormatException("过渡分钟数须为整数。"), ShowHourTicks = ShowHourTicks, Indicator = indicator

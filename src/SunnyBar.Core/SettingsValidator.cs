@@ -20,6 +20,7 @@ public static class SettingsValidator
         {
             if (!InRange(appearance.WidthRatio, 0.2, 1)) errors.Add("宽度比例须为 0.2 到 1。");
             if (!InRange(appearance.BarHeightDip, 6, 24)) errors.Add("色条高度须为 6–24 DIP。");
+            if (!InRange(appearance.ScheduleHeightRatio, 0.1, 1)) errors.Add("日程色带高度占比须为 10%–100%。");
             if (!InRange(appearance.OffsetFromTaskbarDip, 0, 80)) errors.Add("底部间距须为 0–80 DIP。");
             if (!InRange(appearance.Opacity, 0.2, 1)) errors.Add("不透明度须为 0.2 到 1。");
             if (!IsColor(appearance.DayColor) || !IsColor(appearance.NightColor)) errors.Add("日夜颜色须为 #RRGGBB。");

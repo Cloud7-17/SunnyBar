@@ -18,6 +18,8 @@ public sealed class DisplayDayService(TimeZoneInfo timeZone)
     public DateTimeOffset ResolveDailyTime(DisplayDayWindow window, TimeOnly time) =>
         ResolveLocal(time < DayStart ? window.Date.AddDays(1) : window.Date, time);
 
+    public DateTimeOffset ResolveCalendarTime(DateOnly date, TimeOnly time) => ResolveLocal(date, time);
+
     private DateTimeOffset ResolveLocal(DateOnly date, TimeOnly time)
     {
         var local = date.ToDateTime(time, DateTimeKind.Unspecified);

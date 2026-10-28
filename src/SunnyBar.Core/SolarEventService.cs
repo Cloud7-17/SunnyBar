@@ -11,7 +11,9 @@ public sealed class SolarEventService(ISolarEventCalculator calculator)
         if (transition <= TimeSpan.Zero || transition > TimeSpan.FromMinutes(120))
             throw new ArgumentOutOfRangeException(nameof(transitionHalfWidth));
         // Events outside the visible interval still influence its edge colors.
-        var result = calculator.Calculate(window.Start - transition, window.End + transition, location);
+        var midnight = new DisplayDayService(timeZone).ResolveCalendarTime(window.Date, TimeOnly.MinValue);
+        var searchStart = midnight < window.Start - transition ? midnight : window.Start - transition;
+        var result = calculator.Calculate(searchStart, window.End + transition, location);
         var events = result.Events.OrderBy(e => e.Instant).ToArray();
         var markers = events.Where(e => e.Instant >= window.Start && e.Instant < window.End)
             .Select(e => new SolarMarker(TimeZoneInfo.ConvertTime(e.Instant, timeZone), e.Kind, mapper.Map(e.Instant, window)))
@@ -30,7 +32,8 @@ public sealed class SolarEventService(ISolarEventCalculator calculator)
             : stops.All(s => s.Daylight >= 1 - 1e-9) ? SolarWindowState.DayOnly
             : stops.All(s => s.Daylight <= 1e-9) ? SolarWindowState.NightOnly
             : SolarWindowState.Changing;
-        return new SolarTimeline(state, Array.AsReadOnly(markers), Array.AsReadOnly(stops));
+        return new SolarTimeline(state, Array.AsReadOnly(markers), Array.AsReadOnly(stops),
+            DeepNightService.Calculate(window, timeZone, searchStart, result));
 
         double BlendAt(DateTimeOffset instant)
         {

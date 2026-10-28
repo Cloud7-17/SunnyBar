@@ -30,6 +30,8 @@ jobs:
         run: dotnet test SunnyBar.slnx -c Release --no-build --no-restore -m:1 -nr:false --logger trx --results-directory artifacts/test-results
       - name: Check WPF bindings and render examples
         run: dotnet run --project tools/SunnyBar.VisualChecks -c Release -- artifacts/visual-checks
+      - name: Check isolated schedule desktop lifecycle
+        run: dotnet run --project tools/SunnyBar.VisualChecks -c Release -- artifacts/runtime-checks --runtime-check
       - name: Build and verify portable package
         shell: pwsh
         run: ./scripts/publish.ps1 -Dotnet dotnet
@@ -49,7 +51,8 @@ jobs:
           path: |
             artifacts/test-results/*.trx
             artifacts/visual-checks/*.png
-            artifacts/visual-checks/result.txt
+            artifacts/visual-checks/*result.txt
+            artifacts/runtime-checks/result.txt
             artifacts/portable-smoke-result.json
           if-no-files-found: warn
           retention-days: 14

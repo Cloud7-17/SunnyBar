@@ -1,4 +1,4 @@
-<Window x:Class="SunnyBar.App.Views.BarWindow"
+<Window Icon="/SunnyBar.App;component/Assets/SunnyBar.ico" x:Class="SunnyBar.App.Views.BarWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="clr-namespace:SunnyBar.App.Controls"

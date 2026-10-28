@@ -16,8 +16,10 @@ public sealed class DesktopRuntime : IDisposable
     private readonly SettingsService settingsStore;
     private readonly IStartupRegistration startup;
     private readonly SettingsLoadResult loaded;
+    private readonly ScheduleStore scheduleStore;
+    private string scheduleMessage;
+    private EditorWindow? editorWindow;
     private string settingsMessage;
-    private SettingsWindow? settingsWindow;
     private PreviewWindow? preview;
     private bool disposed;
     private bool barClosed;
@@ -30,10 +32,16 @@ public sealed class DesktopRuntime : IDisposable
         settingsMessage = loaded.Message;
         startup = startupRegistration ?? new StartupRegistrationService(settingsStore);
         viewModel.ApplySettings(loaded.Settings, settingsStore);
+        scheduleStore = new ScheduleStore(settingsStore.DirectoryPath);
+        var schedules = scheduleStore.Load(); scheduleMessage = schedules.Message;
+        viewModel.ApplySchedule(schedules.Document);
         bar = new BarWindow(viewModel);
-        tray = new TrayService(ToggleVisibility, OpenSettings, application.Shutdown);
+        tray = new TrayService(ToggleVisibility, OpenSettings, application.Shutdown, OpenSchedule);
+        viewModel.PropertyChanged += OnTimelineChanged;
+        OnTimelineChanged(this, new System.ComponentModel.PropertyChangedEventArgs(""));
         refresh = new TimelineRefreshService(viewModel, application.Dispatcher);
         hover = new OverlayHoverService(bar, viewModel);
+        bar.EditRequested += OnEditRequested;
         bar.ShowRequested += OnShowRequested;
         bar.PlacementFailed += OnPlacementFailed;
         bar.IsVisibleChanged += OnVisibilityChanged;
@@ -48,21 +56,37 @@ public sealed class DesktopRuntime : IDisposable
         bar.Reposition();
         if (showPreview) OpenPreview();
         else if (loaded.IsFirstLaunch || settingsMessage.Length > 0 || viewModel.IndicatorMessage.Length > 0) OpenSettings();
+        if (scheduleMessage.Length > 0) OpenSchedule();
     }
 
-    public void OpenSettings()
+    private void OnTimelineChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e) => tray.UpdateSchedule(viewModel.CurrentScheduleText, viewModel.NextScheduleText);
+    public void OpenSchedule() => OpenEditor(false);
+    public void OpenSettings() => OpenEditor(true);
+    private void OnEditRequested(object? sender, EventArgs e) => OpenSchedule();
+    private void OpenEditor(bool markers)
     {
         if (disposed) return;
-        if (settingsWindow is null)
+        if (editorWindow is null)
         {
-            settingsWindow = new SettingsWindow(new SettingsEditorViewModel(viewModel, settingsStore, startup,
-                settingsMessage + viewModel.IndicatorMessage, loaded.CanSave));
-            settingsWindow.Closed += OnSettingsClosed;
-            settingsWindow.PreviewRequested += OnPreviewRequested;
+            editorWindow = new EditorWindow(new(viewModel, scheduleStore, scheduleMessage),
+                new(viewModel, settingsStore, startup, settingsMessage + viewModel.IndicatorMessage, loaded.CanSave));
+            scheduleMessage = "";
+            editorWindow.Closed += OnEditorClosed;
+            editorWindow.PreviewRequested += OnPreviewRequested;
         }
-        settingsWindow.Show();
-        if (settingsWindow.WindowState == WindowState.Minimized) settingsWindow.WindowState = WindowState.Normal;
-        settingsWindow.Activate();
+        if (markers) editorWindow.SelectMarkers(); else editorWindow.SelectSchedule();
+        editorWindow.Show();
+        if (editorWindow.WindowState == WindowState.Minimized) editorWindow.WindowState = WindowState.Normal;
+        editorWindow.Activate();
+    }
+    private void OnEditorClosed(object? sender, EventArgs e)
+    {
+        if (editorWindow is not null)
+        {
+            editorWindow.Closed -= OnEditorClosed;
+            editorWindow.PreviewRequested -= OnPreviewRequested;
+        }
+        editorWindow = null;
     }
 
     private void OnSettingsChanged(object? sender, EventArgs e)
@@ -72,16 +96,6 @@ public sealed class DesktopRuntime : IDisposable
     }
     private void OnPreviewRequested(object? sender, EventArgs e) => OpenPreview();
     private void OnSettingsRequested(object? sender, EventArgs e) => OpenSettings();
-    private void OnSettingsClosed(object? sender, EventArgs e)
-    {
-        if (settingsWindow is not null)
-        {
-            settingsWindow.Closed -= OnSettingsClosed;
-            settingsWindow.PreviewRequested -= OnPreviewRequested;
-        }
-        settingsWindow = null;
-    }
-
     public void OpenPreview()
     {
         if (disposed) return;
@@ -142,13 +156,14 @@ public sealed class DesktopRuntime : IDisposable
         refresh.Dispose();
         tray.Dispose();
         viewModel.SettingsChanged -= OnSettingsChanged;
-        if (settingsWindow is not null)
+        viewModel.PropertyChanged -= OnTimelineChanged;
+        if (editorWindow is not null)
         {
-            settingsWindow.Closed -= OnSettingsClosed;
-            settingsWindow.PreviewRequested -= OnPreviewRequested;
-            settingsWindow.Close();
-            settingsWindow = null;
+            editorWindow.Closed -= OnEditorClosed;
+            editorWindow.PreviewRequested -= OnPreviewRequested;
+            editorWindow.Close(); editorWindow = null;
         }
+        bar.EditRequested -= OnEditRequested;
         bar.ShowRequested -= OnShowRequested;
         bar.PlacementFailed -= OnPlacementFailed;
         bar.IsVisibleChanged -= OnVisibilityChanged;

@@ -1,4 +1,4 @@
-<Window x:Class="SunnyBar.App.Views.HoverInfoWindow"
+<Window Icon="/SunnyBar.App;component/Assets/SunnyBar.ico" x:Class="SunnyBar.App.Views.HoverInfoWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Sunny Bar — 当前信息" WindowStyle="None" ResizeMode="NoResize"
@@ -10,6 +10,9 @@
             <TextBlock Text="{Binding HoverTimeText}" Foreground="#FFCF70" FontSize="15" FontWeight="SemiBold" />
             <TextBlock Text="{Binding NextMarkerText}" Foreground="#E8EEF5" FontSize="13" Margin="0,7,0,0" TextWrapping="Wrap" MaxWidth="320" />
             <TextBlock Text="{Binding RemainingText}" Foreground="#C5D1DF" FontSize="12" Margin="0,4,0,0" />
+            <Border Height="1" Background="#52627A" Margin="0,9,0,2"/>
+            <TextBlock Text="{Binding HoverCurrentScheduleText}" Foreground="#E8EEF5" FontSize="12" Margin="0,5,0,0" TextWrapping="Wrap" MaxWidth="350"/>
+            <TextBlock Text="{Binding HoverNextScheduleText}" Foreground="#C5D1DF" FontSize="12" Margin="0,7,0,0" TextWrapping="Wrap" MaxWidth="350"/>
         </StackPanel>
     </Border>
 </Window>

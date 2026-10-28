@@ -1,0 +1,77 @@
+<UserControl x:Class="SunnyBar.App.Views.ScheduleEditorView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:SunnyBar.App.ViewModels"
+         Background="#F3F5F8" Foreground="#182230" FontFamily="Segoe UI" FontSize="14">
+    <UserControl.Resources>
+        <Style TargetType="Button"><Setter Property="Padding" Value="12,6"/><Setter Property="Margin" Value="4"/></Style>
+        <Style TargetType="TextBox"><Setter Property="Padding" Value="6,4"/><Setter Property="Margin" Value="0,4,12,8"/></Style>
+        <Style TargetType="ComboBox"><Setter Property="Padding" Value="3"/><Setter Property="Margin" Value="4"/></Style>
+        <Style TargetType="DatePicker"><Setter Property="Margin" Value="0,4"/></Style>
+    </UserControl.Resources>
+    <Grid Margin="20">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <StackPanel>
+            <TextBlock Text="日程" FontSize="24" FontWeight="SemiBold"/>
+            <TextBlock Text="{Binding CurrentText}" Margin="0,8,0,0" TextTrimming="CharacterEllipsis" ToolTip="{Binding CurrentText}"/>
+            <TextBlock Text="{Binding NextText}" Margin="0,4,0,0" TextTrimming="CharacterEllipsis" ToolTip="{Binding NextText}"/>
+            <TextBlock Text="{Binding TimeZoneText}" Foreground="#52627A" FontSize="12" Margin="0,8,0,8" TextWrapping="Wrap"/>
+        </StackPanel>
+        <StackPanel Grid.Row="1">
+        <WrapPanel>
+            <Button Content="新建日程" Click="OnNew" IsEnabled="{Binding CanSave}"/><Button Content="删除选中日程" Click="OnDelete" IsEnabled="{Binding HasSelection}"/>
+            <Button Content="清除全部日程" Click="OnClearAll" IsEnabled="{Binding CanClearAll}"/>
+            <Button Content="粘贴导入…" Click="OnImport" IsEnabled="{Binding CanSave}"/>
+        </WrapPanel>
+        <WrapPanel Margin="4,4,0,0">
+            <TextBlock Text="上课" VerticalAlignment="Center" Margin="0,0,8,0"/>
+            <DatePicker Width="145" SelectedDate="{Binding PresetDate}" AutomationProperties.Name="上课日期"/>
+            <ComboBox Width="175" ItemsSource="{Binding ClassPresets}" SelectedItem="{Binding SelectedClassPreset}" DisplayMemberPath="TimeText" AutomationProperties.Name="上课时段"/>
+            <Button Content="添加上课" Click="OnAddClass" IsEnabled="{Binding CanSave}"/>
+        </WrapPanel>
+        </StackPanel>
+        <DataGrid x:Name="EventsGrid" Grid.Row="2" ItemsSource="{Binding Events}" SelectedItem="{Binding Selected}" Margin="0,8,0,12"
+                  AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" CanUserDeleteRows="False" SelectionMode="Single" MinHeight="120">
+            <DataGrid.Columns>
+                <DataGridTemplateColumn Header="颜色" Width="50"><DataGridTemplateColumn.CellTemplate><DataTemplate><Border Width="20" Height="15" Background="{Binding Color}" BorderBrush="#82909F" BorderThickness="1"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                <DataGridTextColumn Header="标题" Binding="{Binding Title}" Width="*" MinWidth="150"/>
+                <DataGridTextColumn Header="重复" Binding="{Binding RepeatText}" Width="120"/>
+                <DataGridTextColumn Header="开始" Binding="{Binding StartText}" Width="195"/>
+                <DataGridTextColumn Header="结束" Binding="{Binding EndText}" Width="195"/>
+            </DataGrid.Columns>
+        </DataGrid>
+        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" MaxHeight="400"><StackPanel IsEnabled="{Binding HasSelection}">
+            <TextBlock Text="编辑选中日程" FontWeight="SemiBold" Margin="0,0,0,8"/>
+            <TextBlock Text="标题"/><TextBox Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="日程标题"/>
+            <UniformGrid Columns="2">
+                <StackPanel><TextBlock Text="开始日期与时间"/><WrapPanel>
+                    <DatePicker SelectedDate="{Binding StartDate}" Width="145" AutomationProperties.Name="开始日期"/>
+                    <ComboBox Width="60" IsEditable="True" ItemsSource="{x:Static vm:MarkerRow.Hours}" Text="{Binding StartHour, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="开始小时"/>
+                    <TextBlock Text=":" VerticalAlignment="Center"/>
+                    <ComboBox Width="60" IsEditable="True" ItemsSource="{x:Static vm:MarkerRow.Minutes}" Text="{Binding StartMinute, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="开始分钟"/>
+                </WrapPanel></StackPanel>
+                <StackPanel><TextBlock Text="结束日期与时间"/><WrapPanel>
+                    <DatePicker SelectedDate="{Binding EndDate}" Width="145" AutomationProperties.Name="结束日期"/>
+                    <ComboBox Width="60" IsEditable="True" ItemsSource="{x:Static vm:MarkerRow.Hours}" Text="{Binding EndHour, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="结束小时"/>
+                    <TextBlock Text=":" VerticalAlignment="Center"/>
+                    <ComboBox Width="60" IsEditable="True" ItemsSource="{x:Static vm:MarkerRow.Minutes}" Text="{Binding EndMinute, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="结束分钟"/>
+                </WrapPanel></StackPanel>
+            </UniformGrid>
+            <StackPanel Orientation="Horizontal" Margin="0,8,0,4">
+                <TextBlock Text="颜色" VerticalAlignment="Center"/>
+                <ComboBox Width="160" ItemsSource="{Binding ColorChoices}" SelectedItem="{Binding Color}">
+                    <ComboBox.ItemTemplate><DataTemplate><StackPanel Orientation="Horizontal"><Border Background="{Binding}" Width="22" Height="16" BorderBrush="#82909F" BorderThickness="1" Margin="0,0,8,0"/><TextBlock Text="{Binding}"/></StackPanel></DataTemplate></ComboBox.ItemTemplate>
+                </ComboBox><Button Content="调色…" Click="OnChooseColor"/>
+            </StackPanel>
+            <TextBlock Text="备注（可选）"/><TextBox Text="{Binding Notes, UpdateSourceTrigger=PropertyChanged}" Height="60" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="日程备注"/>
+            <WrapPanel>
+                <TextBlock Text="重复" VerticalAlignment="Center"/>
+                <Button Content="不重复" Tag="none" Click="OnRepeatPreset"/><Button Content="每天" Tag="daily" Click="OnRepeatPreset"/><Button Content="工作日" Tag="workdays" Click="OnRepeatPreset"/>
+                <ItemsControl ItemsSource="{Binding RepeatDays}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding Label}" IsChecked="{Binding Enabled}" Margin="5,12"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+            </WrapPanel>
+        </StackPanel>
+        </ScrollViewer>
+        <ScrollViewer Grid.Row="4" MaxHeight="80" VerticalScrollBarVisibility="Auto"><TextBlock Text="{Binding Status}" Foreground="#884A0B" TextWrapping="Wrap" AutomationProperties.Name="日程保存状态"/></ScrollViewer>
+        <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right"><Button Content="保存修改" Click="OnSave" IsEnabled="{Binding HasSelection}"/><Button Content="关闭" Click="OnClose" IsCancel="True"/></StackPanel>
+    </Grid>
+</UserControl>

@@ -1,6 +1,8 @@
 using System.Globalization;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Media;
+using System.Windows.Threading;
 using SunnyBar.Core;
 
 namespace SunnyBar.App.Controls;
@@ -10,7 +12,14 @@ public sealed class TimelineControl : FrameworkElement
 {
     public static readonly DependencyProperty SnapshotProperty = DependencyProperty.Register(
         nameof(Snapshot), typeof(TimelineSnapshot), typeof(TimelineControl),
-        new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender));
+        new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender, (owner, change) =>
+        {
+            if (change.NewValue is not TimelineSnapshot { Solar.DeepNight.Count: > 0 })
+            {
+                var control = (TimelineControl)owner;
+                control.stars.Clear(); control.StopTwinkle();
+            }
+        }));
     public static readonly DependencyProperty IsCompactProperty = DependencyProperty.Register(
         nameof(IsCompact), typeof(bool), typeof(TimelineControl),
         new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.AffectsRender));
@@ -37,6 +46,11 @@ public sealed class TimelineControl : FrameworkElement
         new EllipseGeometry(new Point(0, 0), 7, 7), new EllipseGeometry(new Point(3, -3), 6.5, 6.5));
     private readonly TimeAxisMapper mapper = new();
     private readonly Typeface typeface = new("Segoe UI");
+    private readonly DrawingGroup starField = new();
+    private readonly List<(DrawingGroup Drawing, double Phase, double Period)> stars = [];
+    private readonly Stopwatch twinkleTime = new();
+    private readonly DispatcherTimer twinkleTimer;
+    public bool IsTwinkling => twinkleTimer.IsEnabled;
 
     public TimelineSnapshot? Snapshot
     {
@@ -49,16 +63,25 @@ public sealed class TimelineControl : FrameworkElement
         ClipToBounds = true;
         Focusable = false;
         SnapsToDevicePixels = true;
+        twinkleTimer = new DispatcherTimer(DispatcherPriority.Background, Dispatcher) { Interval = TimeSpan.FromMilliseconds(100) };
+        twinkleTimer.Tick += (_, _) =>
+        {
+            UpdateTwinkleTimer();
+            if (twinkleTimer.IsEnabled) UpdateStarOpacity();
+        };
+        Loaded += (_, _) => UpdateTwinkleTimer();
+        Unloaded += (_, _) => StopTwinkle();
+        IsVisibleChanged += (_, _) => UpdateTwinkleTimer();
     }
 
     protected override void OnRender(DrawingContext drawingContext)
     {
         base.OnRender(drawingContext);
-        if (Snapshot is not { } state || ActualWidth < 80) return;
+        if (Snapshot is not { } state || ActualWidth < 80) { stars.Clear(); StopTwinkle(); return; }
         var appearance = state.Appearance ?? new();
         var requiredHeight = IsCompact ? 16 + appearance.BarHeightDip + (appearance.ShowHourTicks ? 16 : 0) : 132;
         if (ActualHeight + 1 < requiredHeight)
-            return;
+        { stars.Clear(); StopTwinkle(); return; }
 
         var left = IsCompact ? 0.0 : 32;
         var barTop = IsCompact ? 16 : 68;
@@ -79,6 +102,38 @@ public sealed class TimelineControl : FrameworkElement
             drawingContext.DrawRectangle(background, null, new Rect(left, barTop, width, barHeight));
         else
             drawingContext.DrawRoundedRectangle(background, null, new Rect(left, barTop, width, barHeight), 9, 9);
+
+        BuildStarField(state, new Rect(left, barTop, width, barHeight));
+        drawingContext.DrawDrawing(starField);
+
+        if (state.Schedule is { Segments.Count: > 0 } schedule)
+        {
+            var lanes = schedule.Segments.Max(segment => segment.Lane) + 1;
+            var scheduleHeight = barHeight * appearance.ScheduleHeightRatio;
+            var laneHeight = scheduleHeight / lanes;
+            drawingContext.PushClip(new RectangleGeometry(new Rect(left, barTop, width, scheduleHeight)));
+            foreach (var segment in schedule.Segments)
+            {
+                var color = (Color)ColorConverter.ConvertFromString(segment.Event.Color);
+                var fill = new SolidColorBrush(Color.FromArgb(segment.IsCurrent ? (byte)210 : (byte)125, color.R, color.G, color.B));
+                var outline = segment.IsCurrent ? Brushes.White : new SolidColorBrush(color);
+                var rect = new Rect(left + width * segment.StartProgress, barTop + laneHeight * segment.Lane,
+                    Math.Max(0.5, width * (segment.EndProgress - segment.StartProgress)), laneHeight);
+                drawingContext.DrawRectangle(fill, new Pen(outline, segment.IsCurrent ? 2 : 1), rect);
+            }
+            drawingContext.Pop();
+            foreach (var boundary in ScheduleService.Boundaries(schedule, state.Window))
+            {
+                var x = mapper.ToX(boundary.Instant, state.Window, left, width);
+                var brush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(boundary.Event.Color));
+                drawingContext.DrawLine(new Pen(brush, 1.5), new Point(x, barTop - 4), new Point(x, barTop + barHeight - 0.75));
+                var endpointCenter = new Point(Math.Clamp(x, left + 3, left + width - 3), barTop - 6);
+                if (boundary.IsStart)
+                    drawingContext.DrawRectangle(brush, new Pen(Brushes.White, 0.7), new Rect(endpointCenter.X - 2.5, endpointCenter.Y - 2.5, 5, 5));
+                else
+                    drawingContext.DrawEllipse(Brushes.White, new Pen(brush, 1.5), endpointCenter, 2.5, 2.5);
+            }
+        }
 
         var labelBounds = new List<Rect>();
         if (state.Solar is { } solar)
@@ -106,6 +161,20 @@ public sealed class TimelineControl : FrameworkElement
                     labelBounds.Add(bounds);
                 }
             }
+
+        if (state.Midnight is { } midnight)
+        {
+            var x = mapper.ToX(midnight, state.Window, left, width);
+            DrawMidnightStar(drawingContext, x, IsCompact ? 7 : 22, IsCompact ? 5 : 7);
+            drawingContext.DrawLine(new Pen(TickBrush, 1), new Point(x, IsCompact ? 13 : 51), new Point(x, barTop));
+            if (!IsCompact)
+            {
+                var text = MakeText("深夜 00:00");
+                var bounds = new Rect(Math.Clamp(x - text.Width / 2, 0, Math.Max(0, ActualWidth - text.Width)), 35, text.Width + 6, text.Height);
+                if (!labelBounds.Any(prior => prior.IntersectsWith(bounds)))
+                { drawingContext.DrawText(text, bounds.TopLeft); labelBounds.Add(bounds); }
+            }
+        }
 
         if (state.DailyMarkers is { } markers)
             foreach (var marker in markers)
@@ -173,6 +242,83 @@ public sealed class TimelineControl : FrameworkElement
 
     private FormattedText MakeText(string label, double fontSize = 12, Brush? brush = null) => new(label, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight,
         typeface, fontSize, brush ?? TickBrush, VisualTreeHelper.GetDpi(this).PixelsPerDip);
+
+    private void BuildStarField(TimelineSnapshot state, Rect bar)
+    {
+        stars.Clear();
+        using (var drawing = starField.Open())
+        {
+            drawing.PushClip(new RectangleGeometry(bar, IsCompact ? 0 : 9, IsCompact ? 0 : 9));
+            if (state.Solar?.DeepNight is { Count: > 0 } segments)
+            {
+                var totalWidth = segments.Sum(segment => (segment.EndProgress - segment.StartProgress) * bar.Width);
+                var budget = Math.Clamp((int)Math.Ceiling(totalWidth / 10), 1, 192);
+                var seed = state.Window.Date.DayNumber;
+                var ordinal = 0;
+                foreach (var segment in segments)
+                {
+                    var width = (segment.EndProgress - segment.StartProgress) * bar.Width;
+                    if (width <= 0) continue;
+                    drawing.PushClip(new RectangleGeometry(new Rect(bar.Left + segment.StartProgress * bar.Width, bar.Top, width, bar.Height)));
+                    var count = Math.Max(1, (int)Math.Round(budget * width / totalWidth));
+                    for (var i = 0; i < count && stars.Count < 192; i++, ordinal++)
+                    {
+                        var key = seed + ordinal * 31.7;
+                        var x = bar.Left + segment.StartProgress * bar.Width + width * ((i + 0.2 + Noise(key) * 0.6) / count);
+                        var y = bar.Top + 1.5 + Noise(key + 1) * Math.Max(0, bar.Height - 3);
+                        var star = new DrawingGroup();
+                        using (var dot = star.Open())
+                        {
+                            var radius = 0.75 + Noise(key + 2) * 0.45;
+                            dot.DrawEllipse(new SolidColorBrush(Color.FromArgb(50, 194, 221, 255)), null, new Point(x, y), radius * 1.8, radius * 1.8);
+                            dot.DrawEllipse(Brushes.AliceBlue, null, new Point(x, y), radius, radius);
+                            if (ordinal % 4 == 0)
+                            {
+                                var pen = new Pen(Brushes.AliceBlue, 0.65);
+                                dot.DrawLine(pen, new Point(x - 1.9, y), new Point(x + 1.9, y));
+                                dot.DrawLine(pen, new Point(x, y - 1.9), new Point(x, y + 1.9));
+                            }
+                        }
+                        stars.Add((star, Noise(key + 3) * Math.PI * 2, 2.4 + Noise(key + 4) * 2.4));
+                        drawing.DrawDrawing(star);
+                    }
+                    drawing.Pop();
+                }
+            }
+            drawing.Pop();
+        }
+        UpdateStarOpacity();
+        UpdateTwinkleTimer();
+    }
+
+    private static double Noise(double value) { var sample = Math.Sin(value * 12.9898 + 78.233) * 43758.5453; return sample - Math.Floor(sample); }
+    private void UpdateStarOpacity()
+    {
+        foreach (var star in stars)
+            star.Drawing.Opacity = 0.15 + 0.8 * (0.5 + 0.5 * Math.Sin(twinkleTime.Elapsed.TotalSeconds * Math.PI * 2 / star.Period + star.Phase));
+    }
+    private void UpdateTwinkleTimer()
+    {
+        if (!IsLoaded || !IsVisible || stars.Count == 0 || !SystemParameters.ClientAreaAnimation) { StopTwinkle(); return; }
+        twinkleTime.Start(); twinkleTimer.Start();
+    }
+    private void StopTwinkle() { twinkleTimer.Stop(); twinkleTime.Stop(); }
+    private static void DrawMidnightStar(DrawingContext drawing, double x, double y, double radius)
+    {
+        var geometry = new StreamGeometry();
+        using (var path = geometry.Open())
+        {
+            for (var i = 0; i < 10; i++)
+            {
+                var angle = i * Math.PI / 5 - Math.PI / 2;
+                var r = i % 2 == 0 ? radius : radius * 0.44;
+                var point = new Point(x + Math.Cos(angle) * r, y + Math.Sin(angle) * r);
+                if (i == 0) path.BeginFigure(point, true, true); else path.LineTo(point, true, false);
+            }
+        }
+        geometry.Freeze();
+        drawing.DrawGeometry(NowBrush, null, geometry);
+    }
 
     private static Color Mix(double daylight, Color night, Color day)
     {

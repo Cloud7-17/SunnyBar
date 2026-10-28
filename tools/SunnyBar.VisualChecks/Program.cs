@@ -14,6 +14,7 @@ internal static class Program
     [STAThread]
     private static void Main(string[] args)
     {
+        if (args.Contains("--runtime-check")) { ScheduleRuntimeChecks.Run(Path.GetFullPath(args.FirstOrDefault(arg => arg != "--runtime-check") ?? "artifacts/runtime-checks")); return; }
         var interactive = args.Contains("--interactive");
         var application = interactive ? new Application { ShutdownMode = ShutdownMode.OnLastWindowClose } : null;
         var output = Path.GetFullPath(args.FirstOrDefault(arg => arg != "--interactive") ?? "artifacts/visual-checks");
@@ -25,7 +26,7 @@ internal static class Program
         var editor = new SettingsEditorViewModel(model, store, new NoStartup(), "演示数据 · 不修改用户配置", true);
         if (editor.City != 1) throw new Exception("Expected Beijing preset.");
         var window = new SettingsWindow(editor);
-        var tabs = (TabControl)window.FindName("SettingsTabs");
+        var tabs = (TabControl)window.Editor.FindName("SettingsTabs");
         if (interactive)
         {
             tabs.SelectedIndex = 3;
@@ -34,9 +35,18 @@ internal static class Program
             return;
         }
         Render(window, 820, 680, Path.Combine(output, "settings-location.png"));
+        tabs.SelectedIndex = 1;
+        Render(window, 820, 680, Path.Combine(output, "settings-appearance.png"));
+        var ratio = Descendants((DependencyObject)window.Content).OfType<TextBox>().Single(control => control.GetBindingExpression(TextBox.TextProperty)?.ParentBinding.Path.Path == "ScheduleHeightPercent");
+        ratio.SetCurrentValue(TextBox.TextProperty, "25"); ratio.GetBindingExpression(TextBox.TextProperty)!.UpdateSource();
+        if (!editor.Apply() || store.Load().Settings.Appearance.ScheduleHeightRatio != 0.25) throw new Exception("Schedule height binding did not persist");
+        var ratioBefore = File.ReadAllText(store.FilePath);
+        ratio.SetCurrentValue(TextBox.TextProperty, "0"); ratio.GetBindingExpression(TextBox.TextProperty)!.UpdateSource();
+        if (editor.Apply() || File.ReadAllText(store.FilePath) != ratioBefore) throw new Exception("Invalid schedule height changed file");
+        ratio.SetCurrentValue(TextBox.TextProperty, "50"); ratio.GetBindingExpression(TextBox.TextProperty)!.UpdateSource();
         tabs.SelectedIndex = 3;
         Render(window, 820, 680, Path.Combine(output, "settings-markers.png"));
-        var grid = (DataGrid)window.FindName("MarkersGrid");
+        var grid = (DataGrid)window.Editor.FindName("MarkersGrid");
         var combos = Descendants(grid).OfType<ComboBox>().ToArray();
         var hour = combos.First(control => control.GetBindingExpression(ComboBox.TextProperty)?.ParentBinding.Path.Path == "Hour");
         var minute = combos.First(control => control.GetBindingExpression(ComboBox.TextProperty)?.ParentBinding.Path.Path == "Minute");
@@ -63,7 +73,16 @@ internal static class Program
         var content = (FrameworkElement)hover.Content;
         Save(content, Brushes.Transparent, (int)Math.Ceiling(content.ActualWidth), (int)Math.Ceiling(content.ActualHeight), Path.Combine(output, "hover.png"));
         hover.Close(); window.Close();
-        File.WriteAllText(Path.Combine(output, "result.txt"), "PASS: Beijing default, real WPF hour/minute/palette bindings, save/reload, invalid-hour preservation, next marker, rendering. No user settings or real startup registration changed.");
+        ScheduleChecks.Run(model, store, output);
+        BulkClearChecks.Run(output);
+        ClassPresetChecks.Run(output);
+        DeepNightChecks.Run(output);
+        var simplePreview = new PreviewWindow(model, manageRefresh: false);
+        Render(simplePreview, 960, 360, Path.Combine(output, "preview-simple.png"));
+        Render(simplePreview, 620, 320, Path.Combine(output, "preview-simple-small.png"));
+        simplePreview.Close();
+        RepeatImportChecks.Run(output);
+        File.WriteAllText(Path.Combine(output, "result.txt"), "PASS: Beijing default, real WPF hour/minute/palette bindings, save/reload, invalid-hour preservation, next marker, schedule CRUD/projection, rendering. No user settings or real startup registration changed.");
         Console.WriteLine("PASS: isolated WPF binding and render checks. Output: " + output);
     }
     private static IEnumerable<DependencyObject> Descendants(DependencyObject root)
@@ -74,13 +93,13 @@ internal static class Program
             foreach (var descendant in Descendants(child)) yield return descendant;
         }
     }
-    private static void Render(Window window, int width, int height, string path)
+    internal static void Render(Window window, int width, int height, string path)
     {
         var content = (FrameworkElement)window.Content;
         content.Measure(new Size(width, height)); content.Arrange(new Rect(0, 0, width, height)); content.UpdateLayout();
         Save(content, window.Background, width, height, path);
     }
-    private static void Save(Visual content, Brush background, int width, int height, string path)
+    internal static void Save(Visual content, Brush background, int width, int height, string path)
     {
         var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
         var backdrop = new DrawingVisual();

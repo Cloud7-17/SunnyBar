@@ -20,11 +20,11 @@ Read `docs/PRODUCT_PLAN.md` before coding. Follow the milestones in order. Compl
 - All positions (now, sunrise, sunset, custom markers, future event intervals) must be computed through the same time-axis mapping service.
 - Use offset-aware instants for DST correctness, and injectable clocks for deterministic tests.
 - Native Windows overlay is a borderless transparent WPF window, not an injected taskbar component.
-- Default mouse pass-through; tray icon provides settings, hide/show, and exit.
+- As explicitly requested on 2026-10-28, the visible bar accepts double-click to open the shared schedule/marker editor; a single click does not activate it. Empty space above the bar and the information popup remain pass-through. Do not add global mouse hooks.
 - Only primary monitor, bottom non-auto-hidden taskbar guaranteed for MVP.
 - Sunrise/sunset computation is offline. No automatic geolocation or network requirement.
 - Config at `%LocalAppData%\SunnyBar\settings.json`. Default to the Beijing preset as explicitly requested by the user on 2026-10-27; show it clearly, never imply automatic geolocation, and preserve saved locations (including an explicit null location).
-- **Do not implement calendar CRUD / V2 schedule features until V0.1–V1.0 work has been validated.**
+- The user explicitly authorized schedule work on 2026-10-27 after the public 0.2.0 preview and Windows CI passed. Implement single local events first; keep unresolved M5 desktop checks documented, defer recurrence, and retain default mouse pass-through and concise hover information.
 
 ## Working method
 

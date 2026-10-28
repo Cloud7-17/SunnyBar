@@ -7,7 +7,8 @@ public sealed class TimelineService(IClock clock, ISolarEventCalculator? solarCa
     private (DisplayDayWindow Window, GeoLocation Location, TimeZoneInfo Zone, int Transition, SolarTimeline Result)? cachedSolar;
 
     public TimelineSnapshot Capture(TimeZoneInfo timeZone, GeoLocation? location = null,
-        IReadOnlyList<DailyMarkerSettings>? dailyMarkers = null, AppearanceSettings? appearance = null)
+        IReadOnlyList<DailyMarkerSettings>? dailyMarkers = null, AppearanceSettings? appearance = null,
+        IReadOnlyList<ScheduleEvent>? events = null)
     {
         var now = TimeZoneInfo.ConvertTime(clock.UtcNow, timeZone);
         var days = new DisplayDayService(timeZone);
@@ -51,6 +52,7 @@ public sealed class TimelineService(IClock clock, ISolarEventCalculator? solarCa
             }
         }
         return new TimelineSnapshot(window, now, timeZone.DisplayName, mapper.Map(now, window), ticks.AsReadOnly(), sunlight, message,
-            Array.AsReadOnly(markers), appearance);
+            Array.AsReadOnly(markers), appearance, new ScheduleService().Capture(ScheduleExpansion.Expand(events ?? [], window), window, now),
+            days.ResolveDailyTime(window, TimeOnly.MinValue));
     }
 }
