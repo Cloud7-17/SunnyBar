@@ -2,7 +2,7 @@
 
 一条贴近 Windows 任务栏的每日时间轴。以本地 **04:00 → 次日 04:00** 为一天，显示日夜渐变、当前时间和每日固定标记。
 
-当前源码版本 **0.4.0-preview.4**，支持重复日程、AI 文本导入、上课预设和深夜星光。已发布便携版为 **0.3.0-preview.4**，下载包与当前源码的功能可能不同。
+当前源码版本 **0.4.0-preview.4**，支持重复日程、AI 文本导入、上课预设和深夜星光。已发布便携版为 **0.4.0-preview.4**，可直接下载下方 Windows x64 便携包使用。
 
 ![简洁时间轴预览](docs/images/preview-simple.png)
 
@@ -10,9 +10,11 @@
 
 ## 直接运行便携版
 
-1. 从 [GitHub Releases](https://github.com/Cloud7-17/SunnyBar/releases/tag/v0.3.0-preview.4) 获取 `SunnyBar-0.3.0-preview.4-win-x64.zip`，不要下载自动生成的 Source code。0.4 源码可自行构建；CI 成功后也会生成 `SunnyBar-win-x64` 构建产物。
+1. 从 [GitHub Releases](https://github.com/Cloud7-17/SunnyBar/releases/tag/v0.4.0-preview.4) 获取 `SunnyBar-0.4.0-preview.4-win-x64.zip`，不要下载自动生成的 Source code。也可以从源码构建；CI 成功后会生成同版本构建产物。
 2. **完整解压**，双击 `SunnyBar.App.exe`。不需要 .NET、SDK、管理员权限或脚本。
 3. 默认北京，可打开设置修改地点，然后点击“保存并应用”。
+
+分享给朋友可直接转发 [Windows 便携包下载链接](https://github.com/Cloud7-17/SunnyBar/releases/download/v0.4.0-preview.4/SunnyBar-0.4.0-preview.4-win-x64.zip)，或发送完整 ZIP。更新前先从托盘退出旧版，再完整解压新版；日程和设置自动保留，换目录后需重新保存开机启动选项。
 
 请保留 EXE 同目录的所有文件。Windows 11 x64 为主要目标；Windows 10 与第二台无 .NET 电脑仍待验收。源码托管于 [Cloud7-17/SunnyBar](https://github.com/Cloud7-17/SunnyBar)，便携包通过 Releases 分发。
 
