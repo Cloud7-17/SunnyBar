@@ -75,6 +75,13 @@ internal static class Program
         hover.Close(); window.Close();
         ScheduleChecks.Run(model, store, output);
         BulkClearChecks.Run(output);
+        ClassPresetChecks.Run(output);
+        DeepNightChecks.Run(output);
+        var simplePreview = new PreviewWindow(model, manageRefresh: false);
+        Render(simplePreview, 960, 360, Path.Combine(output, "preview-simple.png"));
+        Render(simplePreview, 620, 320, Path.Combine(output, "preview-simple-small.png"));
+        simplePreview.Close();
+        RepeatImportChecks.Run(output);
         File.WriteAllText(Path.Combine(output, "result.txt"), "PASS: Beijing default, real WPF hour/minute/palette bindings, save/reload, invalid-hour preservation, next marker, schedule CRUD/projection, rendering. No user settings or real startup registration changed.");
         Console.WriteLine("PASS: isolated WPF binding and render checks. Output: " + output);
     }

@@ -9,6 +9,7 @@ public sealed class SettingsWindow : Window
     public event EventHandler? ScheduleRequested;
     public SettingsWindow(SettingsEditorViewModel editor)
     {
+        Icon=SunnyBar.App.Services.AppIcon.WindowImage;
         Title="Sunny Bar — 设置"; Width=820; Height=740; MinWidth=720; MinHeight=620;
         WindowStartupLocation=WindowStartupLocation.CenterScreen;
         DataContext=editor; Content=Editor=new(editor);

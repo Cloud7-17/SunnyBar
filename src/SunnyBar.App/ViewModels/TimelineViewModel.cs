@@ -52,6 +52,13 @@ public sealed class TimelineViewModel(IClock clock) : INotifyPropertyChanged
                 $"{(marker.Kind == SolarEventKind.Sunrise ? "日出" : "日落")} {marker.Instant:MM-dd HH:mm}"))
             : string.Empty)
         : string.Empty;
+    public string PreviewSolarStatus => Snapshot is not { } state ? "" : state.Solar?.State switch
+    {
+        SolarWindowState.DayOnly => "极昼",
+        SolarWindowState.NightOnly => "极夜",
+        null => SelectedLocation.Coordinates is null ? "未选择地点" : "日出日落暂不可用",
+        _ => ""
+    };
     public string DailyMarkersText => Snapshot?.DailyMarkers is { Count: > 0 } markers
         ? "每日标记：" + string.Join(" · ", markers.Take(4).Select(marker => $"{marker.Label} {marker.Instant:HH:mm}"))
             + (markers.Count > 4 ? $" 等共 {markers.Count} 个" : "") : "";

@@ -42,6 +42,10 @@ internal static class ScheduleRuntimeChecks
         SendMessage(handle,0x202,0,Point(100,(int)(20*scale)));
         SendMessage(handle,0x201,1,Point(100,(int)(20*scale)));
         var window=application.Windows.OfType<EditorWindow>().Single();
+        var editorHandle=new WindowInteropHelper(window).Handle;
+        if(window.Icon is null || !window.ShowInTaskbar ||
+            (SendMessage(editorHandle,0x7f,0,0)==0 && SendMessage(editorHandle,0x7f,1,0)==0 && SendMessage(editorHandle,0x7f,2,0)==0))
+            throw new Exception("Editor taskbar window has no native icon");
         runtime.OpenSchedule(); runtime.OpenSchedule();
         if(application.Windows.OfType<EditorWindow>().Count()!=1)throw new Exception("Duplicate editor");
         var editor=(ScheduleEditorViewModel)window.ScheduleEditor.DataContext;

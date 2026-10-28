@@ -8,7 +8,7 @@ public sealed record ScheduleHoverInfo(string CurrentText, string NextText)
         {
             var local = TimeZoneInfo.ConvertTime(instant, zone);
             var today = TimeZoneInfo.ConvertTime(now, zone).Date;
-            return local.ToString(local.Date == today ? "HH:mm zzz" : "MM-dd HH:mm zzz");
+            return local.ToString(local.Date == today ? "HH:mm" : "MM-dd HH:mm");
         }
         string Remaining(DateTimeOffset instant) => new UpcomingDailyMarker("", instant, instant - now).RemainingText;
         var current = state?.Current is { Count: > 0 } events

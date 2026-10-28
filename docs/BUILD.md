@@ -4,7 +4,7 @@
 
 Windows x64、.NET SDK 10.0.403。global.json 固定该版本且关闭 roll-forward；CI 从相同文件安装 SDK，避免构建机自动选择其他 feature/patch 版本。更新 SDK 时先修改 global.json 并重新验证。便携用户不需要 SDK。
 
-应用版本在 Directory.Build.props 中，当前 0.3.0-preview.4。自包含运行时版本固定于 SunnyBar.App.csproj，当前 10.0.14；更新 .NET 补丁时须修改它、重新打包并回归。日常开发构建仍使用已安装共享运行时。
+应用版本在 Directory.Build.props 中，当前 0.4.0-preview.4。自包含运行时版本固定于 SunnyBar.App.csproj，当前 10.0.14；更新 .NET 补丁时须修改它、重新打包并回归。日常开发构建仍使用已安装共享运行时。
 
 依赖恢复需要访问 NuGet 官方源；便携包运行离线。请使用可信 SDK 和依赖源。
 

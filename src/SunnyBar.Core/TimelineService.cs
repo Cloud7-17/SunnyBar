@@ -52,6 +52,7 @@ public sealed class TimelineService(IClock clock, ISolarEventCalculator? solarCa
             }
         }
         return new TimelineSnapshot(window, now, timeZone.DisplayName, mapper.Map(now, window), ticks.AsReadOnly(), sunlight, message,
-            Array.AsReadOnly(markers), appearance, new ScheduleService().Capture(events ?? [], window, now));
+            Array.AsReadOnly(markers), appearance, new ScheduleService().Capture(ScheduleExpansion.Expand(events ?? [], window), window, now),
+            days.ResolveDailyTime(window, TimeOnly.MinValue));
     }
 }

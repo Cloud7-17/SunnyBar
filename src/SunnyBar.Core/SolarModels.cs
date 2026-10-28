@@ -10,7 +10,8 @@ public sealed record DaylightStop(double Progress, double Daylight);
 public sealed record SolarTimeline(
     SolarWindowState State,
     IReadOnlyList<SolarMarker> Markers,
-    IReadOnlyList<DaylightStop> Stops);
+    IReadOnlyList<DaylightStop> Stops,
+    IReadOnlyList<DeepNightSegment>? DeepNight = null);
 
 public interface ISolarEventCalculator
 {

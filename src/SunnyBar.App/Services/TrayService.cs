@@ -1,7 +1,5 @@
 using System.Drawing;
-using System.Drawing.Drawing2D;
 using Forms = System.Windows.Forms;
-using SunnyBar.App.Interop;
 
 namespace SunnyBar.App.Services;
 
@@ -19,7 +17,7 @@ public sealed class TrayService : IDisposable
     public TrayService(Action toggle, Action openPreview, Action exit, Action? openSchedule = null)
     {
         this.openPreview = openPreview;
-        icon = CreateIcon();
+        icon = AppIcon.CreateTrayIcon();
         menu = new Forms.ContextMenuStrip();
         visibility = new Forms.ToolStripMenuItem("隐藏时间条", null, (_, _) => toggle());
         menu.Items.Add(visibility);
@@ -54,34 +52,6 @@ public sealed class TrayService : IDisposable
     }
 
     private void OnDoubleClick(object? sender, EventArgs e) => openPreview();
-
-    private static Icon CreateIcon()
-    {
-        using var bitmap = new Bitmap(32, 32);
-        using (var graphics = Graphics.FromImage(bitmap))
-        {
-            graphics.SmoothingMode = SmoothingMode.AntiAlias;
-            graphics.Clear(Color.Transparent);
-            using var background = new SolidBrush(Color.FromArgb(40, 50, 75));
-            using var sunlight = new SolidBrush(Color.FromArgb(255, 207, 112));
-            using var ray = new Pen(Color.FromArgb(255, 207, 112), 2);
-            graphics.FillEllipse(background, 0, 0, 32, 32);
-            graphics.FillEllipse(sunlight, 11, 11, 10, 10);
-            for (var index = 0; index < 8; index++)
-            {
-                var angle = index * Math.PI / 4;
-                graphics.DrawLine(ray, 16 + (float)Math.Cos(angle) * 8, 16 + (float)Math.Sin(angle) * 8,
-                    16 + (float)Math.Cos(angle) * 11, 16 + (float)Math.Sin(angle) * 11);
-            }
-        }
-        var nativeIcon = bitmap.GetHicon();
-        try
-        {
-            using var borrowed = Icon.FromHandle(nativeIcon);
-            return (Icon)borrowed.Clone();
-        }
-        finally { NativeMethods.DestroyIcon(nativeIcon); }
-    }
 
     public void Dispose()
     {

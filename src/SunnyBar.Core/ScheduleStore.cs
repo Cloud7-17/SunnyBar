@@ -20,7 +20,7 @@ public sealed class ScheduleStore(string? directory = null)
         {
             if (new FileInfo(FilePath).Length > 4 * 1024 * 1024) throw new JsonException("日程文件超过 4 MB。");
             var document = JsonSerializer.Deserialize<ScheduleDocument>(File.ReadAllText(FilePath), Options) ?? throw new JsonException("日程根对象为空。");
-            if (document.SchemaVersion > 1)
+            if (document.SchemaVersion > 2)
             {
                 writeBlocked = true;
                 return new(new(), "日程来自更新版本，保留原文件并禁止覆盖。请使用匹配版本。", false);

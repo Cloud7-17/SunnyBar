@@ -13,4 +13,5 @@ public sealed record TimelineSnapshot(
     string SolarMessage = "未选择地点 · 使用中性色时间条",
     IReadOnlyList<TimelineDailyMarker>? DailyMarkers = null,
     AppearanceSettings? Appearance = null,
-    ScheduleState? Schedule = null);
+    ScheduleState? Schedule = null,
+    DateTimeOffset? Midnight = null);

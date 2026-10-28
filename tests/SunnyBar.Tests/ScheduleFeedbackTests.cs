@@ -36,7 +36,8 @@ public sealed class ScheduleFeedbackTests
         var next = first with { Title = "明日安排", StartAt = now.AddDays(1), EndAt = now.AddDays(1).AddHours(1) };
         var info = ScheduleHoverInfo.Capture(new([], [second, first], next), now, TimeZoneInfo.Utc);
         Assert.Contains("当前日程：会议", info.CurrentText);
-        Assert.Contains("14:00 +00:00 → 16:00 +00:00", info.CurrentText);
+        Assert.Contains("14:00 → 16:00", info.CurrentText);
+        Assert.DoesNotContain("+00:00", info.CurrentText + info.NextText);
         Assert.Contains("距结束 不足 1 分钟", info.CurrentText);
         Assert.Contains("距结束 1 小时", info.CurrentText);
         Assert.Contains("10-28 16:00", info.NextText);
@@ -64,7 +65,9 @@ public sealed class ScheduleFeedbackTests
         var now = new DateTimeOffset(2026, 11, 1, 1, 30, 0, TimeSpan.FromHours(-4));
         var item = new ScheduleEvent { Title = "跨夏令时", StartAt = now, EndAt = now.ToOffset(TimeSpan.FromHours(-5)).AddHours(1) };
         var text = ScheduleHoverInfo.Capture(new([], [item], null), now, zone).CurrentText;
-        Assert.Contains("01:30 -04:00 → 01:30 -05:00", text);
+        Assert.Contains("01:30 → 01:30", text);
+        Assert.DoesNotContain("-04:00", text);
+        Assert.DoesNotContain("-05:00", text);
         Assert.Contains("距结束 1 小时", text);
     }
 }
